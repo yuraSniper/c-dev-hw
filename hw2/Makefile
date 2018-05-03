@@ -6,4 +6,4 @@ build: $(SOURCES)
 	$(CC) $(CFLAGS) -o bin/hw1 $(SOURCES)
 
 clean:
-	-rm -f bin/hw1
+	-rm -f bin/*
