@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define RD_STR_INIT_BUF_SIZE 8
+#define RD_STR_INIT_BUF_SIZE 32
 
 char * read_string(uint32_t * str_length)
 {
@@ -30,10 +30,13 @@ char * read_string(uint32_t * str_length)
 	}
 	while(ch != '\n');
 
+	//NOTE: The loop will insert a '\n' onto the end of the string
+	//and we just want to replace it with '\0'
+	length--;
 	result_str[length] = '\0';
 
 	if (str_length != NULL)
-		*str_lenght = length;
+		*str_length = length;
 
 	return result_str;
 }
@@ -58,7 +61,7 @@ char * process_strings(char * str1, uint32_t str1_length, char * str2, uint32_t 
 
 	char * str1_cursor = str1;
 
-	while (*str1_cursor != NULL)
+	while (*str1_cursor != '\0')
 	{
 		char_present[(uint8_t) *str1_cursor] = true;
 		str1_cursor++;
@@ -67,7 +70,7 @@ char * process_strings(char * str1, uint32_t str1_length, char * str2, uint32_t 
 	//NOTE: This string is potentially bigger than necessary, because calculating
 	//the size would require a call to strlen and that would be slower
 	//TODO: We probably should check that malloc didn't return NULL
-	char * result_str = malloc(sizeof(char) * (str1_length + str2_length));
+	char * result_str = malloc(sizeof(char) * (str1_length + str2_length + 1));
 
 	char * result_cursor = my_strcpy(result_str, str1);
 	char * str2_cursor = str2;
@@ -77,8 +80,31 @@ char * process_strings(char * str1, uint32_t str1_length, char * str2, uint32_t 
 		if (!char_present[(uint8_t) *str2_cursor])
 		{
 			*result_cursor = *str2_cursor;
-			
+			result_cursor++;
 		}
+
+		str2_cursor++;
+	}
+
+	*result_cursor = '\0';
+
+	return result_str;
+}
+
+bool my_isalpha(char c)
+{
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+void do_something_with_string(char * str)
+{
+	while (*str != '\0')
+	{
+		//NOTE: If the character is a letter than flip it's case
+		if (my_isalpha(*str))
+			*str = *str ^ 0x20; //0x20 == 0b00100000
+
+		str++;
 	}
 }
 
@@ -94,7 +120,9 @@ int main(int argc, char * argv[])
 	uint32_t str2_length = 0;
 	char * str2 = read_string(&str2_length);
 
-	char * result_str = process_strings(str1, str2);
+	char * result_str = process_strings(str1, str1_length, str2, str2_length);
+
+	do_something_with_string(result_str);
 
 	printf("Result: %s\n", result_str);
 }
