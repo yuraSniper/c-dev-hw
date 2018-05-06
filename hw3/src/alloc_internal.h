@@ -26,10 +26,7 @@ typedef enum container_kind
 	CONTAINER_MEDIUM,
 	CONTAINER_BIG,
 
-	CONTAINER_RESERVED1,
-	CONTAINER_RESERVED2,
-	CONTAINER_RESERVED3,
-	CONTAINER_RESERVED4,
+	CONTAINER_RESERVED,
 
 	CONTAINER_KIND_COUNT,
 } container_kind;
@@ -54,8 +51,6 @@ typedef struct container_descriptor
 
 	struct container_descriptor * next;
 	struct container_descriptor * prev;
-
-	struct free_chunk_header * first_free_chunk;
 
 	uint32_t bitmap[];
 } container_descriptor;

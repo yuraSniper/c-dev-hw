@@ -8,6 +8,8 @@
 #include "alloc_internal.h"
 
 static bool initialized = false;
+static void * heap;
+static free_chunk_header * first_free_chunk; 
 static container_descriptor * head[CONTAINER_KIND_COUNT];
 static size_t alloc_size_threshold[CONTAINER_KIND_COUNT] =
 {
@@ -16,29 +18,35 @@ static size_t alloc_size_threshold[CONTAINER_KIND_COUNT] =
 	CONTAINER_BIG_ITEM_SIZE,
 
 	0,
-	0,
-	0,
-	0,
-
-	-1,
 };
 
 //NOTE(yura): Private functions:
 
-// chunk_alloc() - allocates a chunk of memory from specific container
-// This function requires at least a single container of respective kind to be initialized
-static void * chunk_alloc(container_kind kind, size_t size)
+// chunk_alloc() - allocates a chunk of memory from heap
+static void * chunk_alloc(size_t size)
 {
 	return NULL;
 }
 
 // container_alloc() - allocates a special container with a descriptor for it
-// This function requires at least a single generic container to allocate from
 static container_descriptor * container_alloc(container_kind kind)
 {
 	//NOTE(yura): alloc descriptor struct and alloc the container
 
-	return NULL;
+	//NOTE(yura): We use bitmap, so we have 8 items per byte
+	size_t bitmap_size = CONTAINER_SIZE / (alloc_size_threshold[kind] * 8);
+	
+	size_t desc_size = sizeof(container_descriptor) + bitmap_size;
+
+	container_descriptor * desc = chunk_alloc(desc_size);
+	void * container = chunk_alloc(CONTAINER_SIZE); 
+
+	desc->container_start = container;
+	desc->length_kind = (CONTAINER_SIZE & CONTAINER_LENGTH_MASK) | (kind);
+	
+	memset(desc->bitmap, 0, bitmap_size);
+
+	return desc;
 }
 
 //NOTE(yura): Public interface functions:
@@ -46,12 +54,11 @@ static container_descriptor * container_alloc(container_kind kind)
 bool mstart()
 {
 	//NOTE(yura): The overview of the algorithm for this procedure:
-	// * allocate big generic container
-	// * initialize container_descriptor for the initial container
-	// * allocate small containers
+	// * allocate big heap
+	// * allocate and initialize small containers
 	// * set initialized to true
 
-	void * heap = malloc(INITIAL_GENERIC_CONTAINER_SIZE);
+	heap = malloc(INITIAL_GENERIC_CONTAINER_SIZE);
 
 	if (heap == NULL)
 	{
@@ -60,22 +67,11 @@ bool mstart()
 	}
 
 	chunk_header * chunk = (chunk_header *) heap;
-	chunk->length_flags = (sizeof(container_descriptor) & CHUNK_FLAGS_MASK) |
-	                      (CHUNK_FLAG_DESCRIPTOR);
-
-	container_descriptor * desc = (container_descriptor *) chunk->data;
-	desc->container_start = heap;
-	desc->length_kind = (INITIAL_GENERIC_CONTAINER_SIZE	& CONTAINER_LENGTH_MASK) |
-	                    (CONTAINER_GENERIC);
-	desc->next = desc;
-	desc->prev = desc;
-
-	head[CONTAINER_GENERIC] = desc;
-	chunk->owner_container = desc;
+	chunk->length_flags = (sizeof(container_descriptor) & CHUNK_LENGTH_MASK) | (CHUNK_FLAG_FREE);
 
 	//NOTE(yura): Special container allocation:
 	
-	for (int index = CONTAINER_SMALL; index < CONTAINER_GENERIC; index++)
+	for (int index = CONTAINER_SMALL; index < CONTAINER_KIND_COUNT; index++)
 	{
 		if (alloc_size_threshold[index] > 0)
 		{
