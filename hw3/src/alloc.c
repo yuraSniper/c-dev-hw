@@ -31,6 +31,7 @@ static void * chunk_alloc(size_t size)
 // chunk_dealloc() - deallocates a chunk back into the heap
 static void chunk_dealloc(void * ptr)
 {
+	
 }
 
 // item_alloc() - allocates an item from specialized container
@@ -61,11 +62,17 @@ static void * item_alloc(container_kind kind)
 			container->bitmap[word_index] |= bit_mask;
 			item_index = word_index * 32 + bit_index;
 
-			return ;
+			return container->container_start + item_index * alloc_size_threshold[kind];
 		}
 	}
 
 	return NULL;
+}
+
+// item_dealloc() - frees the item from specific container
+static void item_dealloc(container_descriptor * desc, uint32_t index)
+{
+	
 }
 
 // get_free_word_index() - checks if the container has free slots
