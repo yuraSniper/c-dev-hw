@@ -28,6 +28,66 @@ static void * chunk_alloc(size_t size)
 	return NULL;
 }
 
+// chunk_dealloc() - deallocates a chunk back into the heap
+static void chunk_dealloc(void * ptr)
+{
+}
+
+// item_alloc() - allocates an item from specialized container
+static void * item_alloc(container_kind kind)
+{
+	container_descriptor * container = head[kind]; 
+	
+	while (get_free_word_index(container) == (uint32_t) -1)
+	{
+		container = container->next;
+
+		if (container == head[kind])
+		{
+			container = container_alloc(kind);
+			break;
+		}
+	}
+	
+	uint32_t word_index = get_free_word_index(container);
+	uint32_t item_index = 0;
+
+	for (uint32_t bit_index; bit_index < 32; bit_index++)
+	{
+		uint32_t bit_mask = (1 << bit_index);
+
+		if (container->bitmap[word_index] & bit_mask == 0)
+		{
+			container->bitmap[word_index] |= bit_mask;
+			item_index = word_index * 32 + bit_index;
+
+			return ;
+		}
+	}
+
+	return NULL;
+}
+
+// get_free_word_index() - checks if the container has free slots
+static uint32_t get_free_word_index(container_descriptor * desc)
+{
+	uint32_t kind = desc->length_kind & CONTAINER_KIND_MASK;
+	size_t length = desc->length_kind & CONTAINER_LENGTH_MASK;
+
+	uint32_t bitmap_word_count = length / alloc_size_threshold[kind];
+	bitmap_word_count /= 32;
+
+	for (uint32_t bitmap_index = 0; bitmap_index < bitmap_word_count; bitmap_index++)
+	{
+		if (desc->bitmap[bitmap_index] != (uint32_t) -1)
+		{
+			return bitmap_index;
+		}
+	}
+
+	return -1;
+}
+
 // container_alloc() - allocates a special container with a descriptor for it
 static container_descriptor * container_alloc(container_kind kind)
 {

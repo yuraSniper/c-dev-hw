@@ -57,6 +57,7 @@ typedef struct container_descriptor
 
 typedef struct chunk_header
 {
+	void * prev_ptr;
 	size_t length_flags; //NOTE(yura): Use CHUNK_*_MASK to extract length or flags
 
 	uint8_t data[];
@@ -64,6 +65,7 @@ typedef struct chunk_header
 
 typedef struct free_chunk_header
 {
+	void * prev_ptr;
 	size_t length_flags;
 	container_descriptor * owner_container;
 
