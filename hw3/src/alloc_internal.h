@@ -67,7 +67,6 @@ typedef struct free_chunk_header
 {
 	void * prev_ptr;
 	size_t length_flags;
-	container_descriptor * owner_container;
 
 	struct chunk_header * next_free;
 	struct chunk_header * prev_free;
