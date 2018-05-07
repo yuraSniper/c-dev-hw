@@ -23,15 +23,106 @@ static size_t alloc_size_threshold[CONTAINER_KIND_COUNT] =
 //NOTE(yura): Private functions:
 
 // chunk_alloc() - allocates a chunk of memory from heap
-static void * chunk_alloc(size_t size)
+static chunk_header * chunk_alloc(size_t size)
 {
-	return NULL;
+	if (first_free_chunk == NULL)
+	{
+		fprintf(stderr, "newAlloc internal error: Something went horribly wrong\n");
+		return NULL;
+	}
+
+	//NOTE(yura): Ensure that size is multiple of 8
+	size = size + (8 - (size % 8)) % 8;
+
+	size_t best_size = first_free_chunk->length_kind & CHUNK_LENGTH_MASK;
+	free_chunk_header * best_chunk = first_free_chunk;
+
+	while (true)
+	{
+		free_chunk_header * tmp = best_chunk->next_free;
+
+		if (tmp == NULL)
+			break;
+
+		size_t length = (tmp->length_kind & CHUNK_LENGTH_MASK);
+
+		if (length - sizeof(chunk_header) >= size && length > best_size)
+		{
+			best_chunk = tmp;
+			best_size = length;
+		}
+	}
+
+	if (best_size - sizeof(chunk_header) < size)
+	{
+		return NULL;
+	}
+
+	free_chunk_header * new_free_chunk = best_chunk + size + sizeof(chunk_header);
+	new_free_chunk->prev_ptr = best_chunk;
+	new_free_chunk->length_flags = (best_size - size - sizeof(chunk_header)) & CHUNK_LENGTH_MASK;
+	new_free_chunk->next_free = best_chunk->next_free;
+	new_free_chunk->prev_free = best_chunk->prev_free;
+	
+	chunk_header * next_chunk = best_chunk + best_size;
+
+	if (next_chunk < (heap + INITIAL_HEAP_SIZE))
+	{
+		next_chunk->prev_ptr = new_free_chunk;
+	}
+
+	if (best_chunk->prev_free != NULL)
+	{
+		best_chunk->prev_free->next_free = new_free_chunk;
+	}
+	else
+	{
+		first_free_chunk = new_free_chunk;
+	}
+
+	if (best_chunk->next_free != NULL)
+	{
+		best_chunk->next_free->prev_free = new_free_chunk;
+	}
+
+	best_chunk->length_flags = (size + sizeof(chunk_header)) & CHUNK_LENGTH_MASK;
+
+	return ((chunk_header *) best_chunk);
 }
 
 // chunk_dealloc() - deallocates a chunk back into the heap
-static void chunk_dealloc(void * ptr)
+static void chunk_dealloc(chunk_header * ptr)
 {
-	
+	//NOTE(yura): Algorithm:
+	// * try merge with the next chunk
+	// * try to merge with prev chunk
+
+	free_chunk_header * current = (free_chunk_header *) ptr;
+	current->length_flags &= CHUNK_LENGTH_MASK;
+
+	chunk_header * next_chunk = ((uint8_t *)ptr + (ptr->length_flags & CHUNK_LENGTH_MASK));
+
+	if (next_chunk < (heap + INITIAL_HEAP_SIZE) (next_chunk->length_flags & CHUNK_FLAG_OCCUPIED) == 0)
+	{
+		free_chunk_header * tmp = (free_chunk_header *) next_chunk;
+
+		current->length_kind += tmp->length_kind & CHUNK_LENGTH_MASK;
+		current->next_free = tmp->next_free;
+		current->prev_free = tmp->prev_free;
+
+		if (tmp->prev_free != NULL)
+			tmp->prev_free->next_free = current;
+
+		if (tmp->next_free != NULL)
+			tmp->next_free->prev_free = current;
+	}
+
+	if (current->prev_ptr != NULL && (current->prev_ptr->length_flags & CHUNK_FLAG_OCCUPIED) == 0)
+	{
+		free_chunk_header * tmp = (free_chunk_header *) current->prev_ptr;
+
+		tmp->length_kind += current->length_kind & CHUNK_LENGTH_MASK;
+	}
 }
 
 // item_alloc() - allocates an item from specialized container
@@ -78,7 +169,7 @@ static void item_dealloc(container_descriptor * desc, uint32_t index)
 	desc->bitmap[word_index] &= ~(1 << bit_index);
 }
 
-// get_free_word_index() - checks if the container has free slots
+// get_free_word_index() - returns index of a word that has a free slot
 static uint32_t get_free_word_index(container_descriptor * desc)
 {
 	uint32_t kind = desc->length_kind & CONTAINER_KIND_MASK;
@@ -136,18 +227,20 @@ bool mstart()
 		return false;
 	}
 
-	chunk_header * chunk = (chunk_header *) heap;
-	chunk->length_flags = (sizeof(container_descriptor) & CHUNK_LENGTH_MASK) | (CHUNK_FLAG_FREE);
+	free_chunk_header * chunk = (chunk_header *) heap;
+	chunk->length_flags = (sizeof(container_descriptor) & CHUNK_LENGTH_MASK);
+	chunk->next_free = NULL;
+	chunk->prev_free = NULL;
 
 	//NOTE(yura): Special container allocation:
-	
+
 	for (int index = CONTAINER_SMALL; index < CONTAINER_KIND_COUNT; index++)
 	{
 		if (alloc_size_threshold[index] > 0)
 		{
 			container_descriptor * cont = container_alloc(index);
-			cont->prev = cont;
-			cont->next = cont;
+			cont->prev = NULL;
+			cont->next = NULL;
 
 			head[index] = cont;
 		}
@@ -176,10 +269,22 @@ void * alloc(uint32_t size)
 	//NOTE(yura): Algorithm overview:
 	// * decide which container kind we should allocate from
 	// * find a container that can hold the chunk of requested size
+
+	container_kind kind = CONTAINER_SMALL;
+
+	while (size > alloc_size_threshold[kind])
+	{
+		kind++;
+	}
+
+	
+
 	return NULL;
 }
 
 void mfree(void * ptr)
 {
-
+	//NOTE(yura): Algorithm:
+	// * find which container ptr belongs to
+	// * deallocate it
 }

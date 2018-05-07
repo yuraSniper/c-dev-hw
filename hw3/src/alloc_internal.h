@@ -26,18 +26,17 @@ typedef enum container_kind
 	CONTAINER_MEDIUM,
 	CONTAINER_BIG,
 
-	CONTAINER_RESERVED,
+	CONTAINER_HEAP,
 
 	CONTAINER_KIND_COUNT,
 } container_kind;
 
 typedef enum chunk_flags
 {
-	CHUNK_FLAG_FREE = 0x00,
 	CHUNK_FLAG_OCCUPIED = 0x01,
 	CHUNK_FLAG_DESCRIPTOR = 0x02,
 
-	CHUNK_FLAG_UNUSED = 0x04,
+	CHUNK_FLAG_RESERVED = 0x04,
 } chunk_flags;
 
 struct container_descriptor;
@@ -72,7 +71,11 @@ typedef struct free_chunk_header
 	struct chunk_header * prev_free;
 } free_chunk_header;
 
-static void * chunk_alloc(container_kind kind, size_t size);
+static chunk_header * chunk_alloc(size_t size);
+static void chunk_dealloc(chunk_header * ptr);
+static void * item_alloc(container_kind kind);
+static void item_dealloc(container_descriptor * desc, uint32_t index);
+static uint32_t get_free_word_index(container_descriptor * desc);
 static container_descriptor * container_alloc(container_kind kind);
 
 #endif //ALLOC_INTERNAL_H
