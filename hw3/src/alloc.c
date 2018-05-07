@@ -72,7 +72,10 @@ static void * item_alloc(container_kind kind)
 // item_dealloc() - frees the item from specific container
 static void item_dealloc(container_descriptor * desc, uint32_t index)
 {
-	
+	uint32_t word_index = index / 32;
+	uint32_t bit_index = index % 32;
+
+	desc->bitmap[word_index] &= ~(1 << bit_index);
 }
 
 // get_free_word_index() - checks if the container has free slots
