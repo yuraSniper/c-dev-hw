@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Werror -Wpedantic
+CFLAGS = -g -Wall -Werror -Wpedantic
 LFLAGS = 
 
 OBJECTS = obj/main.o obj/alloc.o

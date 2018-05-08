@@ -46,7 +46,14 @@ static chunk_header * chunk_alloc(size_t size)
 
 		size_t length = (tmp->length_flags & CHUNK_LENGTH_MASK);
 
-		if (length - sizeof(chunk_header) >= size && length > best_size)
+		if (length - sizeof(chunk_header) == size)
+		{
+			best_chunk = tmp;
+			best_size = length;
+
+			break;
+		}
+		else if (length - sizeof(chunk_header) > size && length > best_size)
 		{
 			best_chunk = tmp;
 			best_size = length;
