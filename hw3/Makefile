@@ -6,6 +6,9 @@ OBJECTS = obj/main.o obj/alloc.o
 build: init $(OBJECTS)
 	$(CC) $(LFLAGS) $(OBJECTS) -o bin/hw
 
+run: build
+	bin/hw
+
 init:
 	mkdir -p bin 
 	mkdir -p obj

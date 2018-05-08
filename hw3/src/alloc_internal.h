@@ -56,7 +56,7 @@ typedef struct container_descriptor
 
 typedef struct chunk_header
 {
-	void * prev_ptr;
+	struct chunk_header * prev_ptr;
 	size_t length_flags; //NOTE(yura): Use CHUNK_*_MASK to extract length or flags
 
 	uint8_t data[];
@@ -64,11 +64,11 @@ typedef struct chunk_header
 
 typedef struct free_chunk_header
 {
-	void * prev_ptr;
+	struct chunk_header * prev_ptr;
 	size_t length_flags;
 
-	struct chunk_header * next_free;
-	struct chunk_header * prev_free;
+	struct free_chunk_header * next_free;
+	struct free_chunk_header * prev_free;
 } free_chunk_header;
 
 static chunk_header * chunk_alloc(size_t size);
@@ -77,5 +77,6 @@ static void * item_alloc(container_kind kind);
 static void item_dealloc(container_descriptor * desc, uint32_t index);
 static uint32_t get_free_word_index(container_descriptor * desc);
 static container_descriptor * container_alloc(container_kind kind);
+static bool is_in_container(void * ptr, container_descriptor * desc);
 
 #endif //ALLOC_INTERNAL_H
