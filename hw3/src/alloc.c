@@ -102,7 +102,10 @@ static void chunk_dealloc(chunk_header * ptr)
 
 	chunk_header * next_chunk = (chunk_header *) ((uint8_t *)ptr + (ptr->length_flags & CHUNK_LENGTH_MASK));
 
-	if ((uint8_t *) next_chunk < ((uint8_t *) heap + INITIAL_HEAP_SIZE) && (next_chunk->length_flags & CHUNK_FLAG_OCCUPIED) == 0)
+	bool next_chunk_in_heap = ((uint8_t *) next_chunk < ((uint8_t *) heap + INITIAL_HEAP_SIZE));
+	bool next_chunk_free = ((next_chunk->length_flags & CHUNK_FLAG_OCCUPIED) == 0);
+
+	if (next_chunk_in_heap && next_chunk_free)
 	{
 		free_chunk_header * tmp = (free_chunk_header *) next_chunk;
 
@@ -144,7 +147,8 @@ static void * item_alloc(container_kind kind)
 	uint32_t word_index = get_free_word_index(container);
 	uint32_t item_index = 0;
 
-	for (uint32_t bit_index; bit_index < 32; bit_index++)
+	
+	for (uint32_t bit_index = 0; bit_index < 32; bit_index++)
 	{
 		uint32_t bit_mask = (1 << bit_index);
 
@@ -217,7 +221,10 @@ static bool is_in_container(void * ptr, container_descriptor * desc)
 {
 	size_t length = desc->length_kind & CONTAINER_LENGTH_MASK;
 
-	return (uint8_t *) ptr > (uint8_t *) desc->container_start && (uint8_t *) ptr < ((uint8_t *) desc->container_start + length);
+	bool ptr_ge = ((uint8_t *) ptr) >= ((uint8_t *) desc->container_start);
+	bool ptr_lt = ((uint8_t *) ptr) < ((uint8_t *) desc->container_start + length);
+
+	return ptr_ge && ptr_lt;
 }
 
 // find_container_by_ptr() - searches for container that contains ptr, if none found returns NULL
@@ -304,7 +311,9 @@ void * alloc(uint32_t size)
 
 	if (kind != CONTAINER_HEAP)
 	{
-		return item_alloc(kind);
+		void * tmp = item_alloc(kind);
+
+		return tmp;
 	}
 	else
 	{

@@ -7,6 +7,7 @@ build: init $(OBJECTS)
 	$(CC) $(LFLAGS) $(OBJECTS) -o bin/hw
 
 run: build
+	echo
 	bin/hw
 
 init:
