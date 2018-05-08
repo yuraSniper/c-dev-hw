@@ -10,7 +10,7 @@ run: build
 	bin/hw
 
 init:
-	mkdir -p bin 
+	mkdir -p bin
 	mkdir -p obj
 
 clean:

@@ -8,7 +8,7 @@
 #define MB(x) (KB(x) * 1024)
 #define GB(x) (MB(x) * 1024)
 
-#define INITIAL_HEAP_SIZE (MB(512))
+#define INITIAL_HEAP_SIZE (KB(64))
 #define MEM_PAGE_SIZE                  (4096)
 #define CONTAINER_KIND_MASK            ((size_t) 0x07)
 #define CONTAINER_LENGTH_MASK          (~CONTAINER_KIND_MASK)

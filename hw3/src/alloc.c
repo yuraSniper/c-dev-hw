@@ -58,7 +58,7 @@ static chunk_header * chunk_alloc(size_t size)
 		return NULL;
 	}
 
-	free_chunk_header * new_free_chunk = best_chunk + size + sizeof(chunk_header);
+	free_chunk_header * new_free_chunk = (free_chunk_header *) ((uint8_t *) best_chunk + size + sizeof(chunk_header));
 	new_free_chunk->prev_ptr = (chunk_header *) best_chunk;
 	new_free_chunk->length_flags = (best_size - size - sizeof(chunk_header)) & CHUNK_LENGTH_MASK;
 	new_free_chunk->next_free = best_chunk->next_free;
@@ -192,8 +192,6 @@ static uint32_t get_free_word_index(container_descriptor * desc)
 // container_alloc() - allocates a special container with a descriptor for it
 static container_descriptor * container_alloc(container_kind kind)
 {
-	//NOTE(yura): alloc descriptor struct and alloc the container
-
 	//NOTE(yura): We use bitmap, so we have 8 items per byte
 	size_t bitmap_size = CONTAINER_SIZE / (alloc_size_threshold[kind] * 8);
 	
@@ -209,6 +207,7 @@ static container_descriptor * container_alloc(container_kind kind)
 	desc->length_kind = (CONTAINER_SIZE & CONTAINER_LENGTH_MASK) | (kind);
 	
 	memset(desc->bitmap, 0, bitmap_size);
+
 
 	return desc;
 }
@@ -252,10 +251,12 @@ bool mstart()
 	}
 
 	free_chunk_header * chunk = (free_chunk_header *) heap;
-	chunk->length_flags = (sizeof(container_descriptor) & CHUNK_LENGTH_MASK);
+	chunk->prev_ptr = NULL;
+	chunk->length_flags = (INITIAL_HEAP_SIZE & CHUNK_LENGTH_MASK);
 	chunk->next_free = NULL;
 	chunk->prev_free = NULL;
 
+	first_free_chunk = chunk;
 	//NOTE(yura): Special container allocation:
 
 	for (int index = CONTAINER_SMALL; index < CONTAINER_KIND_COUNT; index++)
